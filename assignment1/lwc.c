@@ -3,6 +3,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <regex.h>
+#include <unistd.h>
+#include <errno.h>
 
 #define LINE 0
 #define WORD 1
@@ -33,60 +35,41 @@ int main (int argc, char **argv){
 
   //too few args
   if(argc < 3){
-    printf("There are too few args\n");
-    return 2;
+    fprintf(stderr,"There are too few args\n");
+    return 1;
   }
-  //reg err
-  if( regcomp( &reg , re_pattern  , flag ) != 0 ){
-    printf( "regexp comp error.\n" );
-    exit(1);
+  char c;
+  while( (c=getopt(argc, argv, "lwc")) != -1 ){
+    switch (c){
+      case 'l':
+        // printf("it's l\n");
+        options[LINE] = 1;
+        break;
+      case 'w':
+        // printf("it's w\n");
+        options[WORD] = 1;
+        break;
+      case 'c':
+        // printf("it's c\n");
+        options[CHARACTER] = 1;
+        break;
+      default:
+        fprintf(stderr,"Try './lwc --help' for more information.\n");
+        return 1;
+        break;
+    }
   }
-  //process args
-  for(i = 1; i < argc;i++){
-    int j = 0;
-    //legal options
-    if (regexec( &reg , argv[i] , nmatch , pmatch , 0 ) == 0){
-      int match_len = pmatch[1].rm_eo - pmatch[1].rm_so;
-      // printf(" match length %d\n", match_len);
-      char* m = malloc((match_len+1)* sizeof(char) );
-      m[match_len] = '\0';
-      strncpy(m, &argv[i][pmatch[1].rm_so],match_len);
-      // printf("%d \n",strlen(m));
-      // printf("args is %s\n",m);
-
-      for(j = 0; j < match_len;j++){
-        m[j] = tolower(m[j]);
-        switch (m[j]){
-          case 'l':
-            // printf("it's l\n");
-            options[LINE] = 1;
-            break;
-          case 'w':
-            // printf("it's w\n");
-            options[WORD] = 1;
-            break;
-          case 'c':
-            // printf("it's c\n");
-            options[CHARACTER] = 1;
-
-            break;
-        }
-      }
-    }
-    //illegal options
-    else if(argv[i][0] == '-'){
-      printf("wc: illegal option -- %s\n",argv[i]);
-    }
-    //file process
-    else{
+  for (int i = 1; i < argc; ++i){
+    //process as a filename
+    if(argv[i][0] != '-'){
       char* fname = argv[i];
       filename[filecount] = i;
       // printf("file name is %s\n",fname);
       //read file
       fp = fopen(fname,"r");
       if(fp == NULL){
-        printf("wc: %s: open: No such file or directory\n",fname);
-        return 1;
+        fprintf(stderr,"%s: %s: %s\n",argv[0],fname,strerror(errno));
+        continue;
       }
       //char process,do counting
       while( (ch = fgetc(fp))!= EOF){
@@ -105,9 +88,7 @@ int main (int argc, char **argv){
           isin_space = 0;
         }
       }
-      // if(wordcount[filecount] > maxcount)
-      //   maxcount = wordcount[filecount];
-
+      fclose(fp);
       filecount++;
     }
   }
@@ -128,10 +109,10 @@ int main (int argc, char **argv){
       outputwidth++;
     }
   }
+  //set format string
   char out_digit_str[1000];
   sprintf(out_digit_str,"%%%dlu ",outputwidth);
-  printf("output digit %d\n", outputwidth);
-  //
+
   for(i = 0; i < filecount; i++){
     if(options[LINE])
       printf(out_digit_str, linecount[i] );
@@ -148,11 +129,13 @@ int main (int argc, char **argv){
       printf(out_digit_str, t_wordcount );
     if(options[CHARACTER])
       printf(out_digit_str, t_charcount );
-    printf("total \n");
+    printf("total\n");
   }
 
-
-  regfree(&reg);
+  free(charcount);
+  free(linecount);
+  free(wordcount);
+  free(filename);
 
   return 0;
 }
