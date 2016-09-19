@@ -12,6 +12,7 @@
 
 int main (int argc, char **argv){
   int i,isin_space = 1;
+  int is_rfile_failed = 0;
   unsigned long *charcount,*linecount,*wordcount,*filename;
   int maxcount;
   int options[3] = {0};// line word character
@@ -69,6 +70,7 @@ int main (int argc, char **argv){
       fp = fopen(fname,"r");
       if(fp == NULL){
         fprintf(stderr,"%s: %s: %s\n",argv[0],fname,strerror(errno));
+        is_rfile_failed = 1;
         continue;
       }
       //char process,do counting
@@ -137,5 +139,5 @@ int main (int argc, char **argv){
   free(wordcount);
   free(filename);
 
-  return 0;
+  return is_rfile_failed;
 }
