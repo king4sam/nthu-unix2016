@@ -11,8 +11,8 @@
 int main (int argc, char **argv){
   int i,isin_space = 1;
   unsigned long *charcount,*linecount,*wordcount,*filename;
-  int maxcount = 0;
-  int options[3] = {0,0,0};// line word character
+  int maxcount;
+  int options[3] = {0};// line word character
 
   // init
   charcount = (unsigned long*)malloc(argc * sizeof(unsigned long));
@@ -105,25 +105,50 @@ int main (int argc, char **argv){
           isin_space = 0;
         }
       }
-      if(wordcount[filecount] > maxcount)
-        maxcount = wordcount[filecount];
+      // if(wordcount[filecount] > maxcount)
+      //   maxcount = wordcount[filecount];
 
       filecount++;
     }
   }
 
   // reporting
+  // cal output width
+  int outputwidth = 1,maxcc;
+  if(filecount > 1){
+    maxcc = t_charcount;
+    while(maxcc > 10){
+      maxcc /= 10;
+      outputwidth++;
+    }
+  }else{
+    maxcc = charcount[0];
+    while(maxcc > 10){
+      maxcc /= 10;
+      outputwidth++;
+    }
+  }
+  char out_digit_str[1000];
+  sprintf(out_digit_str,"%%%dlu ",outputwidth);
+  printf("output digit %d\n", outputwidth);
+  //
   for(i = 0; i < filecount; i++){
     if(options[LINE])
-      printf("%6lu ", linecount[i] );
+      printf(out_digit_str, linecount[i] );
     if(options[WORD])
-      printf("%6lu ", wordcount[i] );
+      printf(out_digit_str, wordcount[i] );
     if(options[CHARACTER])
-      printf("%6lu ", charcount[i] );
+      printf(out_digit_str, charcount[i] );
     printf("%s\n", argv[filename[i]]);
   }
   if(filecount > 1){
-    printf("%d %d %d total\n", t_linecount,t_wordcount, t_charcount );
+    if(options[LINE])
+      printf(out_digit_str, t_linecount );
+    if(options[WORD])
+      printf(out_digit_str, t_wordcount );
+    if(options[CHARACTER])
+      printf(out_digit_str, t_charcount );
+    printf("total \n");
   }
 
 
