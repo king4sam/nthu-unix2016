@@ -67,8 +67,9 @@ int main (int argc, char **argv){
       //read file
       fp = fopen(fname,"r");
       if(fp == NULL){
-        fprintf(stderr,"wc: %s: %s\n",fname,strerror(errno));
+        // fprintf(stderr,"wc: %s: %s\n",fname,strerror(errno));
         is_rfile_failed = 1;
+        filecount++;
         continue;
       }
       //char process,do counting
@@ -112,15 +113,22 @@ int main (int argc, char **argv){
   //set format string
   char out_digit_str[1000];
   sprintf(out_digit_str,"%%%dlu ",outputwidth);
-
+  FILE* t = NULL;
   for(i = 0; i < filecount; i++){
-    if(options[LINE])
-      printf(out_digit_str, linecount[i] );
-    if(options[WORD])
-      printf(out_digit_str, wordcount[i] );
-    if(options[CHARACTER])
-      printf(out_digit_str, charcount[i] );
-    printf("%s\n", argv[filename[i]]);
+    if( (t = fopen(argv[filename[i]],"r")) != NULL){
+      if(options[LINE])
+        printf(out_digit_str, linecount[i] );
+      if(options[WORD])
+        printf(out_digit_str, wordcount[i] );
+      if(options[CHARACTER])
+        printf(out_digit_str, charcount[i] );
+      printf("%s\n", argv[filename[i]]);
+      fclose(t);
+    }
+    else{
+      fprintf(stderr,"wc: %s: %s\n",argv[filename[i]],strerror(errno));
+    }
+
   }
   if(filecount > 1){
     if(options[LINE])
