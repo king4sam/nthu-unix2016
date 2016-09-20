@@ -40,6 +40,7 @@ int main (int argc, char **argv){
     return 1;
   }
   char c;
+  opterr = 0;
   while( (c=getopt(argc, argv, "lwc")) != -1 ){
     switch (c){
       case 'l':
@@ -52,7 +53,8 @@ int main (int argc, char **argv){
         options[CHARACTER] = 1;
         break;
       default:
-        fprintf(stderr,"Try './lwc --help' for more information.\n");
+        fprintf(stderr,"wc: invalid option -- '%c'\n",optopt);
+        fprintf(stderr,"Try 'wc --help' for more information.\n");
         return 1;
         break;
     }
@@ -65,7 +67,7 @@ int main (int argc, char **argv){
       //read file
       fp = fopen(fname,"r");
       if(fp == NULL){
-        fprintf(stderr,"%s: %s: %s\n",argv[0],fname,strerror(errno));
+        fprintf(stderr,"wc: %s: %s\n",fname,strerror(errno));
         is_rfile_failed = 1;
         continue;
       }
