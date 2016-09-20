@@ -43,15 +43,12 @@ int main (int argc, char **argv){
   while( (c=getopt(argc, argv, "lwc")) != -1 ){
     switch (c){
       case 'l':
-        // printf("it's l\n");
         options[LINE] = 1;
         break;
       case 'w':
-        // printf("it's w\n");
         options[WORD] = 1;
         break;
       case 'c':
-        // printf("it's c\n");
         options[CHARACTER] = 1;
         break;
       default:
@@ -65,7 +62,6 @@ int main (int argc, char **argv){
     if(argv[i][0] != '-'){
       char* fname = argv[i];
       filename[filecount] = i;
-      // printf("file name is %s\n",fname);
       //read file
       fp = fopen(fname,"r");
       if(fp == NULL){
