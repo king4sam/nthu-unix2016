@@ -105,7 +105,7 @@ int main (int argc, char **argv){
     }
   }else{
     maxcc = charcount[0];
-    while(maxcc > 10){
+    while(maxcc >= 10){
       maxcc /= 10;
       outputwidth++;
     }
