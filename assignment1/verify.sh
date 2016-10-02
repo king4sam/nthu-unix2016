@@ -2,7 +2,7 @@
 
 rm -r myans wcans lwc
 
-gcc lwc.c -o lwc
+gcc workspace/lwc.c -o lwc
 
 wc testcase/mycase.txt >> wcans
 wc -lw testcase/* >> wcans

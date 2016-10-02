@@ -1,0 +1,1 @@
+int mydup2(int oldfd, int newfd);
