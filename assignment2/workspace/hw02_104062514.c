@@ -2,58 +2,68 @@
 #include "hw2.h"
 #include <unistd.h>
 
-int mydup2(int oldfd, int newfd){
-  // printf("oldfd %d, newfd %d, _SC_OPEN_MAX %ld\n", oldfd,newfd,sysconf(_SC_OPEN_MAX));
-  int i,j,fd_array[_SC_OPEN_MAX] = {-2};
-
-  if (oldfd < 0 || newfd < 0 ){
+int checkfdvalid(int fd){
+  if (fd < 0 ){
     fprintf(stderr, "invalid small fd err\n");
     return -1;
   }
-  if(oldfd > sysconf(_SC_OPEN_MAX) || newfd > sysconf(_SC_OPEN_MAX)){
+  if(fd > sysconf(_SC_OPEN_MAX)){
     fprintf(stderr, "invalid big fd err\n");
     return -1;
   }
-  if (oldfd == newfd){
+  return 0;
+}
+
+int check_fd_equal(int ofd,int nfd){
+  return ofd == nfd ? 1: 0;
+}
+
+int close_tmp_fd(int* fd_array, int length){
+  int i,c;
+  for(i = 0; i < length;i++){
+    c = close(fd_array[i]);
+    if(c < 0){
+      return -1;
+    }
+  }
+  return 0;
+}
+
+int mydup2(int oldfd, int newfd){
+  int i,j,fd_array[_SC_OPEN_MAX] = {-2};
+
+  int ofd_v = checkfdvalid(oldfd);
+  int nfd_v = checkfdvalid(newfd);
+  if(ofd_v < 0 || nfd_v < 0){
+    return -1;
+  }
+
+  int fd_eq = check_fd_equal(newfd,oldfd);
+  if(fd_eq == 1){
     return newfd;
   }
 
   int tmp_fd = -1;
   for(i = 0; tmp_fd < newfd; i++){
     tmp_fd = dup(oldfd);
-    // printf("tmpfd %d\n", tmp_fd);
     if(tmp_fd == -1){
       fprintf(stderr, "dup err\n");
-      for(j = 0;j<i;j++){
-        close(fd_array[j]);
-      }
+      close_tmp_fd(fd_array,i);
       return -1;
       // err while dup
     }
-
     fd_array[i] = tmp_fd;
   }
 
   // newfd are not closed
   if(fd_array[i-1] > newfd){
-    for(j = 0;j<i;j++){
-      close(fd_array[j]);
-    }
-    // printf("newfd is not closed\n");
+    close_tmp_fd(fd_array,i);
     int c = close(newfd);
-    // fprintf(stderr, "t %d c %d\n", t,c);
-
     int r = dup(oldfd);
-    // fprintf(stderr, "r %d \n", r);
   }
   //dup to newfd suc
   else if(fd_array[i-1] == newfd){
-    // printf("newfd suc\n");
-    for(j = 0; j < i-1;j++){
-      close(fd_array[j]);
-    }
-
+    close_tmp_fd(fd_array,i-1);
   }
-  // printf("end\n");
   return newfd;
 }
