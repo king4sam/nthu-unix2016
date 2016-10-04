@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "hw2.h"
 #include <unistd.h>
+#include <stdlib.h>
 
 int checkfdvalid(int fd){
   if (fd < 0 ){
@@ -30,7 +31,9 @@ int close_tmp_fd(int* fd_array, int length){
 }
 
 int mydup2(int oldfd, int newfd){
-  int i,j,fd_array[_SC_OPEN_MAX] = {-2};
+  long sc_open_max = sysconf(_SC_OPEN_MAX);
+  int * fd_array = (int*) malloc(sizeof(int) * sc_open_max);
+  int i,j;
 
   int ofd_v = checkfdvalid(oldfd);
   int nfd_v = checkfdvalid(newfd);
@@ -57,9 +60,9 @@ int mydup2(int oldfd, int newfd){
 
   // newfd are not closed
   if(fd_array[i-1] > newfd){
-    close_tmp_fd(fd_array,i);
     int c = close(newfd);
     int r = dup(oldfd);
+    close_tmp_fd(fd_array,i);
   }
   //dup to newfd suc
   else if(fd_array[i-1] == newfd){
