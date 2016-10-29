@@ -1,3 +1,5 @@
 *.pdf
 assignment*/testcase
+assignment*/workspace/testcase
+.DS_Store
 *.out

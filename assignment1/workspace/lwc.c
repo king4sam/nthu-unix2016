@@ -28,7 +28,6 @@ int main (int argc, char **argv){
   int filecount = 0, t_linecount = 0, t_wordcount = 0, t_charcount = 0;
   FILE* fp;
   char ch;
-  char* re_pattern= "-([lwc]+)";
   size_t nmatch = 2;
   regex_t reg;
   regmatch_t pmatch[ nmatch ];
