@@ -1,8 +1,10 @@
-TARFILE = myfile.hole
-SRCFILE = file.hole
+TARFILE = myfilehole
+SRCFILE = filehole
 HEADFILE = file.holehead
 MYHEADFILE = myfile.holehead
-EXEC = lcp
+TAILFILE = file.holetail
+MYTAILFILE = myfile.holetail
+EXEC = lcp.out
 
 all:clean lcp.c
 	gcc lcp.c -o $(EXEC)
@@ -13,4 +15,7 @@ clean:
 run:all
 	./$(EXEC) $(SRCFILE) $(TARFILE)
 	./$(EXEC) $(HEADFILE) $(MYHEADFILE)
-	ls -al |grep hole
+	./$(EXEC) $(TAILFILE) $(MYTAILFILE)
+	ls -ls |grep $(HEADFILE)
+	ls -ls |grep $(TAILFILE)
+	ls -ls |grep $(SRCFILE)
