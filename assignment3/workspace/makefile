@@ -10,7 +10,7 @@ all:clean lcp.c
 	gcc lcp.c -o $(EXEC)
 
 clean:
-	rm -f $(TARFILE) $(EXEC)
+	rm -f $(TARFILE) $(EXEC) $(MYHEADFILE) $(MYTAILFILE)
 
 run:all
 	./$(EXEC) $(SRCFILE) $(TARFILE)
