@@ -1,11 +1,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #define MAXLINE 1000
 #define MAXARGV 10
 #define MAXCMD 100
 const char prompt[] = "tsh >>> ";
+extern char **environ;
 
 int parsecmd(char* line, int* doargc, char** doargv){
 
@@ -20,13 +24,14 @@ int parsecmd(char* line, int* doargc, char** doargv){
   count++;
   substr = strtok(NULL, " ");
   while (substr){
-    printf("del : %s\n", substr);
+    // printf("del : %s\n", substr);
     doargv[count] = malloc(sizeof(char) * MAXCMD);
     strcpy(doargv[count],substr);
     count++;
 
     substr = strtok(NULL, " ");
   }
+  doargv[count] = NULL;
   (*doargc) = count;
 
   return 0;
@@ -42,6 +47,7 @@ int main(int argc,char** argv){
   char** doargv;
   char cmd[MAXCMD];
   char line[MAXLINE];
+  pid_t childpid;
 
 
   while(1){
@@ -57,7 +63,7 @@ int main(int argc,char** argv){
       {
         doargv[i] = malloc(sizeof(char) * MAXCMD);
       }
-      printf("line %s argc %d \n",line, doargc);
+      // printf("line %s argc %d \n",line, doargc);
       parsecmd(line, &doargc,doargv);
 
       // printf("cmd %s, argc %d \n",doargv[0], doargc);
@@ -68,15 +74,31 @@ int main(int argc,char** argv){
 
       //check isbg?
       bg = checkbg(doargc, doargv);
-      printf("isbg ? %d \n", bg);
+      // printf("isbg ? %d \n", bg);
 
-
-      // if((pid = Fork()) == 0){                                                //Run user process in a child
-      //     if(execve(cmd, argv, environ) < 0){                             //executes user command if successful
-      //         printf("%s: Command not found.\n", argv[0]);                    //Throw error if execution unsuccessful
-      //         exit(0);
-      //     }
-      // }
+      //child
+      printf("cmd is %s \n", doargv[0]);
+      if((childpid = fork()) == 0){
+          printf("child process\n");
+          setpgid(childpid,childpid);
+          if(execve(doargv[0], doargv, environ) < 0){
+            printf("Command %s 404.\n", doargv[0]);
+            exit(0);
+          }
+      }
+      else if(childpid < 0){
+        printf("fork error\n");
+      }
+      //parent
+      else{
+        printf("parent waiting\n");
+        if (waitpid(childpid, NULL, 0) != childpid){
+          printf("waitpid err\n");
+        }
+        else{
+          printf("child terminate\n");
+        }
+      }
       //if not build-in cmd, execve
 
       // else
