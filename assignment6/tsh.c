@@ -4,12 +4,40 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 
+#define MAXPATHLENG 1000
 #define MAXLINE 1000
 #define MAXARGV 10
 #define MAXCMD 100
 const char prompt[] = "tsh >>> ";
 extern char **environ;
+
+int do_cd(char** doargv){
+
+}
+
+int do_buildind_cmd(char** doargv){
+  int rint;
+  char* rptr;
+
+  if( strcmp(doargv[0],"cd") == 0 ){
+    rint = chdir(doargv[1]);
+    if(rint != 0){
+      printf("%s\n",strerror(errno));
+    }
+    return 1;
+  }
+  else if( strcmp(doargv[0], "pwd") == 0 ){
+    char* pathbuf = malloc(sizeof(char) * MAXPATHLENG);
+    rptr = getcwd(pathbuf,MAXPATHLENG);
+    rptr == NULL? printf("%s\n",strerror(errno)) : printf("%s\n",pathbuf);
+    return 1;
+  }
+  else{
+    return 0;
+  }
+}
 
 int parsecmd(char* line, int* doargc, char** doargv){
 
@@ -55,7 +83,7 @@ int main(int argc,char** argv){
 
     if(fgets(line, MAXLINE, stdin) != NULL){
       line[strlen(line)-1] = '\0';
-      printf("get line : %s\n", line);
+      // printf("get line : %s\n", line);
 
       //parse cmd to build doargc doarvg
       doargv = malloc(sizeof(char*) * MAXARGV);
@@ -76,12 +104,17 @@ int main(int argc,char** argv){
       bg = checkbg(doargc, doargv);
       // printf("isbg ? %d \n", bg);
 
-      //child
       printf("cmd is %s \n", doargv[0]);
+
+      //build-in cmd
+      if( do_buildind_cmd(doargv) ){
+        continue;
+      }
+
       if((childpid = fork()) == 0){
           printf("child process\n");
           setpgid(childpid,childpid);
-          if(execve(doargv[0], doargv, environ) < 0){
+          if(execvp(doargv[0], doargv) < 0){
             printf("Command %s 404.\n", doargv[0]);
             exit(0);
           }
