@@ -13,8 +13,18 @@
 const char prompt[] = "tsh >>> ";
 extern char **environ;
 
-int do_cd(char** doargv){
+void sig_fork(int signo)
+{
 
+    pid_t pid;
+    int stat;
+    pid = waitpid(-1,&stat,0);
+
+    if(pid != -1){
+      printf("%d child sig\n", pid);
+      // printf("child procrss %d terminate\n",pid);
+    }
+    return;
 }
 
 int do_buildind_cmd(char** doargv){
@@ -65,8 +75,17 @@ int parsecmd(char* line, int* doargc, char** doargv){
   return 0;
 }
 
-int checkbg(int argc, char** argv){
-  return strcmp(argv[argc-1], "&") == 0? 1:0;
+int checkbg(int* argc, char** argv){
+  int c = *(argc);
+  if(strcmp(argv[c-1], "&") == 0){
+    argv[c-1] = NULL;
+    (*argc) = c-1;
+    return 1;
+  }
+  else{
+    return 0;
+  }
+  return strcmp(argv[c-1], "&") == 0? 1:0;
 }
 
 
@@ -78,12 +97,12 @@ int main(int argc,char** argv){
   pid_t childpid;
 
 
+
   while(1){
     printf("%s", prompt);
 
     if(fgets(line, MAXLINE, stdin) != NULL){
       line[strlen(line)-1] = '\0';
-      // printf("get line : %s\n", line);
 
       //parse cmd to build doargc doarvg
       doargv = malloc(sizeof(char*) * MAXARGV);
@@ -91,55 +110,42 @@ int main(int argc,char** argv){
       {
         doargv[i] = malloc(sizeof(char) * MAXCMD);
       }
-      // printf("line %s argc %d \n",line, doargc);
       parsecmd(line, &doargc,doargv);
 
-      // printf("cmd %s, argc %d \n",doargv[0], doargc);
-      // for (int i = 0; i < doargc; ++i)
-      // {
-      //   printf("argv : %s\n", doargv[i]);
-      // }
-
       //check isbg?
-      bg = checkbg(doargc, doargv);
+      bg = checkbg(&doargc, doargv);
       // printf("isbg ? %d \n", bg);
-
-      printf("cmd is %s \n", doargv[0]);
-
       //build-in cmd
       if( do_buildind_cmd(doargv) ){
         continue;
       }
 
+      //if not build-in cmd, execve
       if((childpid = fork()) == 0){
-          printf("child process\n");
+          // printf("child process\n");
           setpgid(childpid,childpid);
           if(execvp(doargv[0], doargv) < 0){
-            printf("Command %s 404.\n", doargv[0]);
+            fprintf(stderr,"%s\n",strerror(errno));
             exit(0);
           }
+          // printf("child terminate\n");
       }
       else if(childpid < 0){
-        printf("fork error\n");
+        fprintf(stderr,"fork error\n");
       }
       //parent
       else{
-        printf("parent waiting\n");
-        if (waitpid(childpid, NULL, 0) != childpid){
-          printf("waitpid err\n");
+        if(bg){
+          // waitpid(-1, NULL, WNOHANG);
+          signal(SIGCHLD, sig_fork);
         }
-        else{
-          printf("child terminate\n");
+        if(!bg){
+          waitpid(childpid, NULL, 0);
+          // printf("nobg wait\n");
         }
       }
-      //if not build-in cmd, execve
 
-      // else
-      //docmd(argc,arvg)
     }
-
-
-
   }
 
   return 0;
