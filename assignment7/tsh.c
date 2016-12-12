@@ -27,6 +27,24 @@ struct job
 struct job* jobary[MAXJOBS];
 int latestjob = 0;
 
+void ignsomesig(){
+  signal (SIGINT, SIG_IGN);
+  signal (SIGQUIT, SIG_IGN);
+  signal (SIGTSTP, SIG_IGN);
+  signal (SIGHUP, SIG_IGN);
+  signal (SIGTTIN, SIG_IGN);
+  signal (SIGTTOU, SIG_IGN);
+}
+
+void dflsomesig(){
+  signal (SIGINT, SIG_DFL);
+  signal (SIGQUIT, SIG_DFL);
+  signal (SIGTSTP, SIG_DFL);
+  signal (SIGHUP, SIG_DFL);
+  signal (SIGTTIN, SIG_DFL);
+  signal (SIGTTOU, SIG_DFL);
+}
+
 void addjob(struct job * j){
   jobary[latestjob] = j;
   latestjob++;
@@ -54,7 +72,11 @@ int getjobid(pid_t pid){
 
 void showjob(int jobindex){
   if(jobary[jobindex] != NULL){
-    printf("%d %s %d\n", jobary[jobindex]->jobid,jobary[jobindex]->command,jobary[jobindex]->pid );
+    printf("%3d %5d %s \n",
+      jobary[jobindex]->jobid
+      ,jobary[jobindex]->pid
+      ,jobary[jobindex]->command
+    );
   }
   else
     return;
@@ -83,7 +105,7 @@ void sig_fork(int signo){
     return;
 }
 
-int do_buildind_cmd(char** doargv){
+int do_buildind_cmd(int doargc, char** doargv){
   int rint;
   char* rptr;
 
@@ -102,9 +124,31 @@ int do_buildind_cmd(char** doargv){
   }
   else if(strcmp (doargv[0], "jobs") == 0){
     showjobs();
+    return 1;
   }
   else if(strcmp(doargv[0], "fg") == 0){
+    int jid,tmp;
+    if(doargc != 2){
+      printf("usage : fg [jobid]\n");
+    }
+    jid = atoi(doargv[1]);
+    if( jobary[jid] == NULL){
+      printf("no such job\n");
+    }
 
+    tmp = tcsetpgrp(STDIN_FILENO,jobary[jid]->pid );
+    if(tmp == -1){
+      printf("tcsetpgrp error\n");
+    }
+    // set control process as foreground job
+    waitpid(jobary[jid]->pid, NULL, 0);
+    tmp = tcsetpgrp(STDIN_FILENO,control_process);
+    if(tmp == -1){
+      printf("tcsetpgrp error\n");
+    }
+    removejob(jid);
+
+    return 1;
   }
   else{
     return 0;
@@ -166,7 +210,9 @@ int main(int argc,char** argv){
   // printf("mygrpid %d fdpgrpid %d \n", pgrpid, fggrpid);
   //
   control_process = getpid();
-  tcsetpgrp (STDIN_FILENO, control_process);
+  tcsetpgrp(STDIN_FILENO, control_process);
+  tcsetpgrp(STDOUT_FILENO,control_process);
+
   struct job* newjob;
 
   while(1){
@@ -175,12 +221,7 @@ int main(int argc,char** argv){
 
     if(fgets(line, MAXLINE, stdin) != NULL && strlen(line) > 1 ){
       //control proess ignore sig after user input
-      signal (SIGINT, SIG_IGN);
-      signal (SIGQUIT, SIG_IGN);
-      signal (SIGTSTP, SIG_IGN);
-      signal (SIGHUP, SIG_IGN);
-      signal (SIGTTIN, SIG_IGN);
-      signal (SIGTTOU, SIG_IGN);
+      ignsomesig();
       // signal(SIGINT,SIG_IGN);
       // signal(SIGTSTP,ctrlz);
 
@@ -198,7 +239,8 @@ int main(int argc,char** argv){
       bg = checkbg(&doargc, doargv);
       // printf("isbg ? %d \n", bg);
       //build-in cmd
-      if( do_buildind_cmd(doargv) ){
+      if( do_buildind_cmd(doargc, doargv) ){
+        dflsomesig();
         continue;
       }
 
@@ -209,13 +251,8 @@ int main(int argc,char** argv){
           childpid = getpid();
           setpgid(childpid,childpid);
           //defalt sig handler
-          signal (SIGINT, SIG_DFL);
-          signal (SIGQUIT, SIG_DFL);
-          signal (SIGTSTP, SIG_DFL);
-          signal (SIGHUP, SIG_DFL);
-          signal (SIGTTIN, SIG_DFL);
-          signal (SIGTTOU, SIG_DFL);
-          // printf("child pid %d pgid %d\n",childpid,getpgid(childpid));
+          dflsomesig();
+          printf("child pid %d pgid %d\n",childpid,getpgid(childpid));
           if(execvp(doargv[0], doargv) < 0){
             fprintf(stderr,"%s\n",strerror(errno));
             exit(0);
@@ -227,7 +264,7 @@ int main(int argc,char** argv){
       //parent
       else{
         parentpid = getpid();
-        // printf("parent pid %d pgid %d\n",parentpid,getpgid(parentpid));
+        printf("parent pid %d pgid %d\n",parentpid,getpgid(parentpid));
         // printf("parent see child pid %d pgid %d\n",childpid,getpgid(childpid));
         if(bg){
           newjob = (struct job *)malloc(sizeof(struct job));
@@ -240,12 +277,6 @@ int main(int argc,char** argv){
           addjob(newjob);
           signal(SIGCHLD, sig_fork);
           //defalt sig handler
-          signal (SIGINT, SIG_DFL);
-          signal (SIGQUIT, SIG_DFL);
-          signal (SIGTSTP, SIG_DFL);
-          signal (SIGHUP, SIG_DFL);
-          signal (SIGTTIN, SIG_DFL);
-          signal (SIGTTOU, SIG_DFL);
         }
         if(!bg){
           //set child process as foreground job
@@ -256,21 +287,18 @@ int main(int argc,char** argv){
 
           // set control process as foreground job
           waitpid(childpid, NULL, 0);
+
           tmp = tcsetpgrp(STDIN_FILENO,control_process);
           if(tmp == -1){
             printf("tcsetpgrp error\n");
           }
 
           //defalt sig handler
-          signal (SIGINT, SIG_DFL);
-          signal (SIGQUIT, SIG_DFL);
-          signal (SIGTSTP, SIG_DFL);
-          signal (SIGHUP, SIG_DFL);
-          signal (SIGTTIN, SIG_DFL);
-          signal (SIGTTOU, SIG_DFL);
+
         }
       }
 
+      dflsomesig();
     }
   }
 

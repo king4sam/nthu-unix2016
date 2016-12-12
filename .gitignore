@@ -1,5 +1,7 @@
 *.pdf
 assignment*/testcase
 assignment*/workspace/testcase
+sftp-config.json
 .DS_Store
+*.zip
 *.out
