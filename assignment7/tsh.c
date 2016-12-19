@@ -98,7 +98,7 @@ void sig_fork(int signo){
     pid = waitpid(-1,&stat,0);
 
     if(pid != -1){
-      // printf("%d child sig\n", pid);
+      printf("%d child sig\n", pid);
       removejob(getjobid(pid));
       // printf("child procrss %d terminate\n",pid);
     }
@@ -217,8 +217,6 @@ int main(int argc,char** argv){
 
   while(1){
     printf("%s", prompt);
-
-
     if(fgets(line, MAXLINE, stdin) != NULL && strlen(line) > 1 ){
       //control proess ignore sig after user input
       ignsomesig();
@@ -246,13 +244,14 @@ int main(int argc,char** argv){
 
       //if not build-in cmd, execve
       if((childpid = fork()) == 0){
-
           // printf("child process\n");
           childpid = getpid();
           setpgid(childpid,childpid);
           //defalt sig handler
           dflsomesig();
           printf("child pid %d pgid %d\n",childpid,getpgid(childpid));
+          printf("now fgin : %d\n", tcgetpgrp(STDIN_FILENO));
+          printf("now fgout : %d\n", tcgetpgrp(STDOUT_FILENO));
           if(execvp(doargv[0], doargv) < 0){
             fprintf(stderr,"%s\n",strerror(errno));
             exit(0);
@@ -264,8 +263,9 @@ int main(int argc,char** argv){
       //parent
       else{
         parentpid = getpid();
+        setpgid(childpid,childpid);
         printf("parent pid %d pgid %d\n",parentpid,getpgid(parentpid));
-        // printf("parent see child pid %d pgid %d\n",childpid,getpgid(childpid));
+        printf("parent see child pid %d pgid %d\n",childpid,getpgid(childpid));
         if(bg){
           newjob = (struct job *)malloc(sizeof(struct job));
           newjob->bg = bg;
@@ -273,10 +273,12 @@ int main(int argc,char** argv){
           newjob->pid = childpid;
           newjob->command = malloc(sizeof(char) * MAXCMD);
           strcpy(newjob->command,doargv[0]);
-          // printf("new job : bd %d jobid %d pid %d cmd %s \n",newjob->bg, newjob->jobid, newjob->pid,newjob->command);
+          printf("new job : bd %d jobid %d pid %d cmd %s \n",newjob->bg, newjob->jobid, newjob->pid,newjob->command);
           addjob(newjob);
           signal(SIGCHLD, sig_fork);
+
           //defalt sig handler
+          dflsomesig();
         }
         if(!bg){
           //set child process as foreground job
@@ -294,12 +296,14 @@ int main(int argc,char** argv){
           }
 
           //defalt sig handler
-
+          dflsomesig();
         }
       }
-
-      dflsomesig();
     }
+    tmp = tcsetpgrp(STDIN_FILENO,control_process);
+    tmp = tcsetpgrp(STDOUT_FILENO,control_process);
+    printf("now fgin : %d\n", tcgetpgrp(STDIN_FILENO));
+    printf("now fgout : %d\n", tcgetpgrp(STDOUT_FILENO));
   }
 
   return 0;
