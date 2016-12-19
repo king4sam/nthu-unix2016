@@ -10,6 +10,8 @@ struct queue {
   struct job *q_head;
   struct job *q_tail;
   pthread_rwlock_t q_lock;
+  pthread_cond_t   isready = PTHREAD_COND_INITIALIZER;
+  pthread_mutex_t  isready_lock;
 };
 /*
 * Initialize a queue.
@@ -24,6 +26,11 @@ queue_init(struct queue *qp)
   if (err != 0)
     return(err);
 /* ... continue initialization ... */
+
+  err = pthread_mutex_init(&qp->isready_lock, NULL);
+  if (err != 0)
+    return err;
+
   return(0);
 }
 /*
@@ -38,9 +45,10 @@ job_insert(struct queue *qp, struct job *jp)
   if (qp->q_head != NULL)
     qp->q_head->j_prev = jp;
   else
-    qp->q_tail = jp; /* list was empty */
+  qp->q_tail = jp; /* list was empty */
     qp->q_head = jp;
   pthread_rwlock_unlock(&qp->q_lock);
+  pthread_cond_broadcast(&qp->isready);
 }
 /*
 * Append a job on the tail of the queue.
@@ -57,6 +65,7 @@ job_append(struct queue *qp, struct job *jp)
     qp->q_head = jp; /* list was empty */
     qp->q_tail = jp;
   pthread_rwlock_unlock(&qp->q_lock);
+  pthread_cond_broadcast(&qp->isready);
 }
 /*
 * Remove the given job from a queue.
