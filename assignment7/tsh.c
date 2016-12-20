@@ -154,6 +154,7 @@ int do_buildind_cmd(int doargc, char** doargv){
     return 1;
   }
   else if(strcmp(doargv[0], "exit") == 0){
+    dflsomesig();
     kill(control_process,SIGINT);
   }
   else{
@@ -221,7 +222,7 @@ int main(int argc,char** argv){
   struct job* newjob;
 
   while(1){
-
+    ignsomesig();
     tmp = tcsetpgrp(STDIN_FILENO,control_process);
     // printf("now fgin : %d\n", tcgetpgrp(STDIN_FILENO));
     printf("%s", prompt);
