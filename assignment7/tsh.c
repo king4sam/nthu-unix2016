@@ -138,6 +138,7 @@ int do_buildind_cmd(int doargc, char** doargv){
       printf("no such job\n");
     }
     ignsomesig();
+    kill(jobary[jid]->pid ,SIGCONT);
     tmp = tcsetpgrp(STDIN_FILENO,jobary[jid]->pid );
     if(tmp == -1){
       printf("tcsetpgrp error\n");
