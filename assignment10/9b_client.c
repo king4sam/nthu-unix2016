@@ -40,13 +40,13 @@ int main(int argc, char**argv){
   }
 
   if (aip == NULL) {
-    fprintf(stderr, "no available address\n");
+    fprintf(stderr, "can’t connect to %s:%s", argv[1],argv[2]);
     return 1;
   }
   freeaddrinfo(aip);
 
   while (read(sockfd, buf, MAXSIZE) != -1) {
-    printf("%s\n", buf);
+    printf("%s", buf);
     sleep(5);
   }
 
