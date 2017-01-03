@@ -48,6 +48,7 @@ main(int argc, char *argv[])
 {
   int     listenfd, *connfdp;
   int     err;
+  pid_t childpid;
   socklen_t len;
   struct addrinfo   hint, *ailist, *aip;
   struct sockaddr_in  cliaddr;
@@ -115,13 +116,19 @@ main(int argc, char *argv[])
       fprintf(stderr, "getnameinfo error: %s\n", gai_strerror(err));
       return 1;
     }
-
-    if (pthread_create(&tid, &attr, send_pronum, connfdp) != 0) { //once get a connfd , create a pthread immediately
-      fprintf(stderr, "pthread_create error\n");
-      close(*connfdp);  //if failure, close connection and free the memery we requested
-      free(connfdp);
+    if((childpid = fork()) == 0){
+      if (pthread_create(&tid, &attr, send_pronum, connfdp) != 0) { //once get a connfd , create a pthread immediately
+        fprintf(stderr, "pthread_create error\n");
+        close(*connfdp);  //if failure, close connection and free the memery we requested
+        free(connfdp);
+      }
+      printf("pthread %ld connect to client %s port %s\n", tid, clihost, cliport);
     }
-    printf("pthread %ld connect to client %s port %s\n", tid, clihost, cliport);
+    else if(childpid < 0){
+      fprintf(stderr,"fork error\n");
+    }
+    //parent
+
   }
   printf("break for loop \n");
   return 0;
